@@ -1,0 +1,7 @@
+#!/bin/bash
+echo "Stopping existing containers..."
+docker-compose down
+echo "Building Jar..."
+./gradlew clean bootJar
+echo "Starting Application..."
+docker-compose up --build
