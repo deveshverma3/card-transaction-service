@@ -3,7 +3,7 @@ package com.io.cardtransactions.service;
 import com.io.cardtransactions.domain.Account;
 import com.io.cardtransactions.dto.request.AccountRequest;
 import com.io.cardtransactions.dto.response.AccountResponse;
-import com.io.cardtransactions.exception.EntityAlreadyExistsException;
+import com.io.cardtransactions.exception.DataIntegrityViolationException;
 import com.io.cardtransactions.exception.EntityNotFoundException;
 import com.io.cardtransactions.mapper.AccountMapper;
 import com.io.cardtransactions.repository.AccountRepository;
@@ -68,7 +68,7 @@ class AccountServiceTest {
     void testCreateAccountAlreadyExists() {
         when(accountRepository.existsByDocumentNumber(accountRequest.getDocumentNumber())).thenReturn(true);
 
-        EntityAlreadyExistsException exception = assertThrows(EntityAlreadyExistsException.class,
+        DataIntegrityViolationException exception = assertThrows(DataIntegrityViolationException.class,
                 () -> accountService.create(accountRequest));
 
         assertTrue(exception.getMessage().contains("Account already exists"));

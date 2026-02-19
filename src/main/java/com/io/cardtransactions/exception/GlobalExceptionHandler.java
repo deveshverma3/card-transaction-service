@@ -57,4 +57,19 @@ public class GlobalExceptionHandler {
                 .build();
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(apiError);
     }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> handleEntityNotFound(DataIntegrityViolationException ex, HttpServletRequest request) {
+
+        log.warn("Data integrity violation at path ={} message={}", request.getRequestURI(), ex.getMessage());
+
+        ApiError apiError = ApiError.builder()
+                .status(HttpStatus.CONFLICT.value())
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .error(HttpStatus.CONFLICT.getReasonPhrase())
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(apiError);
+    }
 }
