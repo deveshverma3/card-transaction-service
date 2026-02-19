@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface OperationTypeRepository extends JpaRepository<OperationType, Long> {
+public interface OperationTypeRepository extends JpaRepository<OperationType, Short> {
 
     Optional<OperationType> findByOperationTypeId(Short operationTypeId);
 

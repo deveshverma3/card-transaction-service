@@ -10,8 +10,10 @@ import org.mapstruct.Mapping;
 public interface TransactionMapper {
 
     @Mapping(source = "accountId", target = "account.accountId")
+    @Mapping(source = "operationTypeId", target = "operationType.operationTypeId")
     Transaction toTransaction(TransactionRequest transactionRequest);
 
     @Mapping(source = "account.accountId", target = "accountId")
+    @Mapping(source = "operationType.description", target = "operationType")
     TransactionResponse toTransactionResponse(Transaction transaction);
 }

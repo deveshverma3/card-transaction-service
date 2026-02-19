@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 
 @Getter
 @Setter
@@ -19,7 +20,7 @@ public class TransactionRequest {
             example = "1",
             requiredMode = Schema.RequiredMode.REQUIRED
     )
-    private Long accountId;
+    private BigInteger accountId;
 
     @NotNull(message = "Operation Type ID is required")
     @JsonProperty(value = "operation_type_id")

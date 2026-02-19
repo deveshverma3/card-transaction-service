@@ -17,19 +17,23 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "transaction_id")
     BigInteger transactionId;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "account_id", nullable = false)
     private Account account;
-    @Column(name = "operation_type_id")
-    Short operationTypeId;
+
+    @ManyToOne
+    @JoinColumn(name = "operation_type_id", nullable = false)
+    private OperationType operationType;
+
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal amount;
-    @Column(name = "event_date", nullable = false)
-    private LocalDateTime eventDate;
+
+    @Column(name = "created_at", nullable = false)
+    LocalDateTime createdAt;
 
     @PrePersist
     public void prePersist() {
-        this.eventDate = LocalDateTime.now();
+        createdAt = LocalDateTime.now();
     }
-
 }

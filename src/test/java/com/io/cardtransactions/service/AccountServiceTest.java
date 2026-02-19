@@ -3,20 +3,20 @@ package com.io.cardtransactions.service;
 import com.io.cardtransactions.domain.Account;
 import com.io.cardtransactions.dto.request.AccountRequest;
 import com.io.cardtransactions.dto.response.AccountResponse;
+import com.io.cardtransactions.exception.EntityAlreadyExistsException;
 import com.io.cardtransactions.exception.EntityNotFoundException;
 import com.io.cardtransactions.mapper.AccountMapper;
 import com.io.cardtransactions.repository.AccountRepository;
-import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
+import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigInteger;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,68 +31,70 @@ class AccountServiceTest {
     @InjectMocks
     private AccountService accountService;
 
+    private AccountRequest accountRequest;
+    private Account account;
+    private AccountResponse accountResponse;
+
+    @BeforeEach
+    void setUp() {
+        accountRequest = new AccountRequest();
+        accountRequest.setDocumentNumber("123456789");
+
+        account = new Account();
+        account.setAccountId(BigInteger.valueOf(1));
+        account.setDocumentNumber("123456789");
+
+        accountResponse = new AccountResponse();
+        accountResponse.setAccountId(BigInteger.valueOf(1));
+        accountResponse.setDocumentNumber("123456789");
+    }
+
     @Test
-    @DisplayName("Should create account successfully when document does not exist")
-    void shouldCreateAccountSuccessfully() {
-        AccountRequest request = new AccountRequest();
-        request.setDocumentNumber("12345678900");
-
-        Account account = new Account();
-        account.setDocumentNumber("12345678900");
-
-        AccountResponse expectedResponse = new AccountResponse();
-        expectedResponse.setAccountId(1L);
-        expectedResponse.setDocumentNumber("12345678900");
-
-        when(accountRepository.existsByDocumentNumber("12345678900")).thenReturn(false);
-        when(accountMapper.toAccount(request)).thenReturn(account);
+    void testCreateAccountSuccessfully() {
+        when(accountRepository.existsByDocumentNumber(accountRequest.getDocumentNumber())).thenReturn(false);
+        when(accountMapper.toAccount(accountRequest)).thenReturn(account);
         when(accountRepository.save(account)).thenReturn(account);
-        when(accountMapper.toAccountResponse(account)).thenReturn(expectedResponse);
+        when(accountMapper.toAccountResponse(account)).thenReturn(accountResponse);
 
-        AccountResponse response = accountService.create(request);
+        AccountResponse result = accountService.create(accountRequest);
 
-        assertNotNull(response);
-        assertEquals("12345678900", response.getDocumentNumber());
-        verify(accountRepository, times(1)).save(any(Account.class));
+        assertNotNull(result);
+        assertEquals(accountResponse.getAccountId(), result.getAccountId());
+        verify(accountRepository).existsByDocumentNumber(accountRequest.getDocumentNumber());
+        verify(accountRepository).save(account);
     }
 
     @Test
-    @DisplayName("Should throw EntityNotFoundException when creating account with existing document")
-    void shouldThrowExceptionWhenDocumentExists() {
-        AccountRequest request = new AccountRequest();
-        request.setDocumentNumber("12345678900");
+    void testCreateAccountAlreadyExists() {
+        when(accountRepository.existsByDocumentNumber(accountRequest.getDocumentNumber())).thenReturn(true);
 
-        when(accountRepository.existsByDocumentNumber("12345678900")).thenReturn(true);
+        EntityAlreadyExistsException exception = assertThrows(EntityAlreadyExistsException.class,
+                () -> accountService.create(accountRequest));
 
-        assertThrows(EntityNotFoundException.class, () -> accountService.create(request));
-        verify(accountRepository, never()).save(any(Account.class));
+        assertTrue(exception.getMessage().contains("Account already exists"));
+        verify(accountRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("Should return account response when finding by valid ID")
-    void shouldReturnAccountWhenIdExists() {
-        Long accountId = 1L;
-        Account account = new Account();
-        account.setAccountId(accountId);
+    void testGetByIdSuccessfully() {
+        when(accountRepository.findById(BigInteger.valueOf(1))).thenReturn(Optional.of(account));
+        when(accountMapper.toAccountResponse(account)).thenReturn(accountResponse);
 
-        AccountResponse expectedResponse = new AccountResponse();
-        expectedResponse.setAccountId(accountId);
+        AccountResponse result = accountService.getById(BigInteger.valueOf(1));
 
-        when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
-        when(accountMapper.toAccountResponse(account)).thenReturn(expectedResponse);
-
-        AccountResponse response = accountService.getById(accountId);
-
-        assertNotNull(response);
-        assertEquals(accountId, response.getAccountId());
+        assertNotNull(result);
+        assertEquals(BigInteger.valueOf(1), result.getAccountId());
+        verify(accountRepository).findById(BigInteger.valueOf(1));
     }
 
     @Test
-    @DisplayName("Should throw EntityNotFoundException when finding by non-existent ID")
-    void shouldThrowExceptionWhenIdDoesNotExist() {
-        Long accountId = 99L;
-        when(accountRepository.findById(accountId)).thenReturn(Optional.empty());
+    void testGetByIdNotFound() {
+        when(accountRepository.findById(BigInteger.valueOf(1))).thenReturn(Optional.empty());
 
-        assertThrows(EntityNotFoundException.class, () -> accountService.getById(accountId));
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+                () -> accountService.getById(BigInteger.valueOf(1)));
+
+        assertTrue(exception.getMessage().contains("Account not found"));
+        verify(accountRepository).findById(BigInteger.valueOf(1));
     }
 }

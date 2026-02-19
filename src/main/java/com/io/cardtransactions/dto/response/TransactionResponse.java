@@ -11,8 +11,8 @@ import java.time.LocalDateTime;
 @Setter
 public class TransactionResponse {
     BigInteger transactionId;
-    private Long accountId;
-    Short operationTypeId;
+    private BigInteger accountId;
+    String operationType;
     private BigDecimal amount;
-    private LocalDateTime eventDate;
+    private LocalDateTime createdAt;
 }
