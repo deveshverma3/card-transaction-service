@@ -48,13 +48,13 @@ The service applies **automatic amount normalization** based on the operation ty
 Using Run Script
 
 *  chmod +x run
-*  ./run   `
+*  ./run
 
 Application will be available at: http://localhost:8081
 
-H2 Console: http://localhost:8081/h2-console   `
+H2 Console: http://localhost:8081/h2-console
 
-JDBC URL: jdbc:h2:mem:carddb   `
+JDBC URL: jdbc:h2:mem:carddb
 
 📖 API Documentation
 --------------------
