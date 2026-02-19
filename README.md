@@ -48,12 +48,12 @@ The service applies **automatic amount normalization** based on the operation ty
 1️⃣ Clone the Repository
 ------------------------
 
-git clone https://github.com//card-transactions-service.git
+git clone https://github.com/deveshverma3/card-transaction-service.git
 
 2️⃣ Navigate to the Project Folder
 ----------------------------------
 
-cd card-transactions-service
+cd card-transaction-service/
 
 3️⃣ Run the Application
 -----------------------
