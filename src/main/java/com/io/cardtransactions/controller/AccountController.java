@@ -50,8 +50,6 @@ public class AccountController {
 
         AccountResponse response = accountService.getById(accountId);
 
-        log.debug("Successfully retrieved account with id={}", accountId);
-
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

@@ -36,4 +36,11 @@ public class Transaction {
     public void prePersist() {
         createdAt = LocalDateTime.now();
     }
+
+    public Transaction(Account account, OperationType operationType, BigDecimal normalized) {
+        this.account = account;
+        this.operationType = operationType;
+        this.amount = normalized;
+    }
+
 }

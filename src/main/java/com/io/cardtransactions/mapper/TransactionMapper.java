@@ -15,5 +15,6 @@ public interface TransactionMapper {
 
     @Mapping(source = "account.accountId", target = "accountId")
     @Mapping(source = "operationType.description", target = "operationType")
+    @Mapping(target = "amount", expression = "java(transaction.getAmount().abs())")
     TransactionResponse toTransactionResponse(Transaction transaction);
 }

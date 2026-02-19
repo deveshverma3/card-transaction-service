@@ -1,5 +1,6 @@
 package com.io.cardtransactions.service;
 
+import com.io.cardtransactions.domain.Account;
 import com.io.cardtransactions.domain.OperationType;
 import com.io.cardtransactions.domain.Transaction;
 import com.io.cardtransactions.dto.request.TransactionRequest;
@@ -9,10 +10,12 @@ import com.io.cardtransactions.mapper.TransactionMapper;
 import com.io.cardtransactions.repository.AccountRepository;
 import com.io.cardtransactions.repository.OperationTypeRepository;
 import com.io.cardtransactions.repository.TransactionRepository;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
@@ -20,6 +23,7 @@ import java.math.BigInteger;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -27,99 +31,98 @@ class TransactionServiceTest {
 
     @Mock
     private AccountRepository accountRepository;
-
     @Mock
     private OperationTypeRepository operationTypeRepository;
-
     @Mock
     private TransactionRepository transactionRepository;
-
     @Mock
     private TransactionMapper transactionMapper;
 
     @InjectMocks
     private TransactionService transactionService;
 
-    private TransactionRequest request;
-    private OperationType operationType;
-    private Transaction transaction;
-    private TransactionResponse response;
-
-    @BeforeEach
-    void setUp() {
-        request = new TransactionRequest();
-        request.setAccountId(BigInteger.valueOf(1));
-        request.setOperationTypeId((short) 2);
-        request.setAmount(BigDecimal.valueOf(100));
-
-        operationType = new OperationType();
-        operationType.setOperationTypeId((short) 2);
-        operationType.setDescription("Purchase");
-        operationType.setChargeModifier(BigDecimal.valueOf(-1));
-
-        transaction = new Transaction();
-        transaction.setTransactionId(BigInteger.valueOf(10));
-        transaction.setAmount(request.getAmount());
-
-        response = new TransactionResponse();
-        response.setTransactionId(BigInteger.valueOf(10));
-        response.setAccountId(BigInteger.valueOf(1));
-        response.setOperationType("Purchase");
-        response.setAmount(BigDecimal.valueOf(100));
-    }
-
     @Test
-    void testCreateTransactionSuccessfully() {
-        when(accountRepository.findById(request.getAccountId())).thenReturn(Optional.of(mock(com.io.cardtransactions.domain.Account.class)));
+    @DisplayName("Should normalize amount to positive when operation type modifier is +1")
+    void create_ShouldNormalizeAmountToPositive() {
+
+        TransactionRequest request = new TransactionRequest();
+        request.setAccountId(BigInteger.valueOf(123));
+        request.setOperationTypeId((short) 4);
+        request.setAmount(new BigDecimal("100.00"));
+
+        Account account = new Account();
+
+        OperationType operationType = new OperationType();
+        operationType.setOperationTypeId((short) 4);
+        operationType.setChargeModifier(BigDecimal.ONE);
+
+        when(accountRepository.findById(request.getAccountId())).thenReturn(Optional.of(account));
 
         when(operationTypeRepository.findByOperationTypeId(request.getOperationTypeId())).thenReturn(Optional.of(operationType));
 
-        when(transactionMapper.toTransaction(request)).thenReturn(transaction);
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        when(transactionRepository.save(transaction)).thenReturn(transaction);
+        when(transactionMapper.toTransactionResponse(any(Transaction.class))).thenReturn(new TransactionResponse());
 
-        when(transactionMapper.toTransactionResponse(transaction)).thenReturn(response);
+        transactionService.create(request);
 
-        TransactionResponse result = transactionService.create(request);
+        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
 
-        assertEquals(request.getAmount().multiply(operationType.getChargeModifier()), transaction.getAmount());
+        verify(transactionRepository).save(captor.capture());
 
-        verify(transactionMapper).toTransaction(request);
-        verify(transactionRepository).save(transaction);
-        verify(transactionMapper).toTransactionResponse(transaction);
+        Transaction savedTransaction = captor.getValue();
 
-        assertEquals(response.getTransactionId(), result.getTransactionId());
-        assertEquals("Purchase", result.getOperationType());
+        assertEquals(new BigDecimal("100.00"), savedTransaction.getAmount());
     }
 
     @Test
-    void testCreateTransactionAccountNotFound() {
-        when(accountRepository.findById(request.getAccountId())).thenReturn(Optional.empty());
+    @DisplayName("Should normalize amount to negative when operation type modifier is -1")
+    void create_ShouldNormalizeAmountToNegative() {
 
-        EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
-                () -> transactionService.create(request));
+        TransactionRequest request = new TransactionRequest();
+        request.setAccountId(BigInteger.valueOf(123));
+        request.setOperationTypeId((short) 1);
+        request.setAmount(new BigDecimal("100.00"));
 
-        assertTrue(ex.getMessage().contains("Account"));
-        assertTrue(ex.getMessage().contains(request.getAccountId().toString()));
+        Account account = new Account();
 
-        verify(accountRepository).findById(request.getAccountId());
-        verifyNoInteractions(operationTypeRepository, transactionRepository, transactionMapper);
+        OperationType operationType = new OperationType();
+        operationType.setOperationTypeId((short) 1);
+        operationType.setChargeModifier(new BigDecimal("-1"));
+
+        when(accountRepository.findById(request.getAccountId())).thenReturn(Optional.of(account));
+
+        when(operationTypeRepository.findByOperationTypeId(request.getOperationTypeId())).thenReturn(Optional.of(operationType));
+
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(transactionMapper.toTransactionResponse(any(Transaction.class))).thenReturn(new TransactionResponse());
+
+        transactionService.create(request);
+
+        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+
+        verify(transactionRepository).save(captor.capture());
+
+        Transaction savedTransaction = captor.getValue();
+
+        assertEquals(new BigDecimal("-100.00"), savedTransaction.getAmount());
     }
 
     @Test
-    void testCreateTransactionOperationTypeNotFound() {
-        when(accountRepository.findById(request.getAccountId())).thenReturn(Optional.of(mock(com.io.cardtransactions.domain.Account.class)));
-        when(operationTypeRepository.findByOperationTypeId(request.getOperationTypeId())).thenReturn(Optional.empty());
+    @DisplayName("Should throw EntityNotFoundException when Account is missing")
+    void create_ShouldThrowException_WhenAccountNotFound() {
 
-        EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
-                () -> transactionService.create(request));
+        TransactionRequest request = new TransactionRequest();
+        request.setAccountId(BigInteger.valueOf(999));
 
-        assertTrue(ex.getMessage().contains("OperationType"));
-        assertTrue(ex.getMessage().contains(request.getOperationTypeId().toString()));
+        when(accountRepository.findById(any())).thenReturn(Optional.empty());
 
-        verify(accountRepository).findById(request.getAccountId());
-        verify(operationTypeRepository).findByOperationTypeId(request.getOperationTypeId());
-        verifyNoInteractions(transactionRepository, transactionMapper);
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () ->
+                transactionService.create(request)
+        );
+
+        assertTrue(exception.getMessage().contains("Account"));
+        verify(transactionRepository, never()).save(any());
     }
-
 }

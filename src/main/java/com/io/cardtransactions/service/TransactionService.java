@@ -1,6 +1,5 @@
 package com.io.cardtransactions.service;
 
-import com.io.cardtransactions.domain.OperationType;
 import com.io.cardtransactions.domain.Transaction;
 import com.io.cardtransactions.dto.request.TransactionRequest;
 import com.io.cardtransactions.dto.response.TransactionResponse;
@@ -13,6 +12,8 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
 
 import static com.io.cardtransactions.util.TransactionUtil.normalizeAmount;
 
@@ -29,32 +30,21 @@ public class TransactionService {
     @Transactional
     public TransactionResponse create(TransactionRequest request) {
 
-        log.debug("Starting transaction creation for accountId={}, operationTypeId={}", request.getAccountId(), request.getOperationTypeId());
+        var account = accountRepository.findById(request.getAccountId())
+                .orElseThrow(() ->
+                        new EntityNotFoundException("Account", "accountId", request.getAccountId()));
 
-        accountRepository.findById(request.getAccountId()).orElseThrow(() -> {
-            log.warn("Account not found with id={}", request.getAccountId());
-            return new EntityNotFoundException("Account", "accountId", request.getAccountId()
-            );
-        });
+        var operationType = operationTypeRepository
+                .findByOperationTypeId(request.getOperationTypeId())
+                .orElseThrow(() ->
+                        new EntityNotFoundException("OperationType", "operationTypeId", request.getOperationTypeId()));
 
+        BigDecimal normalized = normalizeAmount(request.getAmount(), operationType);
 
-        OperationType operationType = operationTypeRepository.findByOperationTypeId(request.getOperationTypeId()).orElseThrow(() -> {
-            log.warn("OperationType not found with id={}", request.getOperationTypeId());
-            return new EntityNotFoundException("OperationType", "operationTypeId", request.getOperationTypeId()
-            );
-        });
+        var transaction = new Transaction(account, operationType, normalized);
 
-        log.debug("Applying charge modifier {} to amount {}", operationType.getChargeModifier(), request.getAmount());
-
-        request.setAmount(normalizeAmount(request.getAmount(), operationType));
-        Transaction transaction = transactionMapper.toTransaction(request);
-
-        Transaction saved = transactionRepository.save(transaction);
-        saved.setOperationType(operationType);
-
-        log.info("Transaction created successfully with id={} for accountId={}", saved.getTransactionId(), request.getAccountId());
+        var saved = transactionRepository.save(transaction);
 
         return transactionMapper.toTransactionResponse(saved);
-
     }
 }

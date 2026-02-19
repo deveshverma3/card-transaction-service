@@ -1,6 +1,5 @@
 package com.io.cardtransactions.service;
 
-import com.io.cardtransactions.domain.Account;
 import com.io.cardtransactions.dto.request.AccountRequest;
 import com.io.cardtransactions.dto.response.AccountResponse;
 import com.io.cardtransactions.exception.EntityAlreadyExistsException;
@@ -26,15 +25,10 @@ public class AccountService {
         log.debug("Checking if account exists with documentNumber={}", accountRequest.getDocumentNumber());
 
         if (accountRepository.existsByDocumentNumber(accountRequest.getDocumentNumber())) {
-            log.warn("Account already exists with documentNumber={}", accountRequest.getDocumentNumber());
-            throw new EntityAlreadyExistsException(
-                    "Account",
-                    "documentNumber",
-                    accountRequest.getDocumentNumber()
-            );
+            throw new EntityAlreadyExistsException("Account", "documentNumber", accountRequest.getDocumentNumber());
         }
 
-        Account savedAccount = accountRepository.save(accountMapper.toAccount(accountRequest));
+        var savedAccount = accountRepository.save(accountMapper.toAccount(accountRequest));
 
         log.info("Account created successfully with id={}", savedAccount.getAccountId());
 
@@ -43,7 +37,7 @@ public class AccountService {
 
     public AccountResponse getById(BigInteger accountId) {
 
-        Account account = accountRepository.findById(accountId).orElseThrow(() -> new EntityNotFoundException("Account", "accountId", accountId));
+        var account = accountRepository.findById(accountId).orElseThrow(() -> new EntityNotFoundException("Account", "accountId", accountId));
 
         return accountMapper.toAccountResponse(account);
     }
